@@ -1,0 +1,5 @@
+# Week 1 needs nothing but a test runner.
+# The TTS layer talks HTTP over the standard library on purpose: no vendor SDK,
+# so no wheel-availability risk and no transitive dependency surface.
+# Week 2 will add the media-server client. Keep this list honest and short.
+pytest>=7.0
