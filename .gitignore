@@ -26,3 +26,12 @@ sessions/
 Thumbs.db
 .idea/
 .vscode/
+
+# Dry-run placeholders
+results/audio/*.txt
+
+# Generated audio is not committed: it is large, binary, and reproducible
+# from the scripts. The results JSON summary is the committed proof instead.
+
+# Private working notes - never published
+INFRA.private.md
