@@ -1,0 +1,28 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Session artifacts (audio is large and may contain voice data)
+artifacts/
+sessions/
+*.wav
+*.mp3
+*.ogg
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
