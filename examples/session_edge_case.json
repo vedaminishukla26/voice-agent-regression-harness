@@ -1,0 +1,564 @@
+{
+  "session_id": "0262fa5a5718",
+  "persona": "edge_case",
+  "room": "harness",
+  "transport": "loopback",
+  "started_at_utc": "2026-09-16T12:05:27.173161+00:00",
+  "duration_ms": 20263,
+  "time_scale": 0.0,
+  "stop_reason": "turn_ceiling",
+  "error": null,
+  "config": {
+    "persona": "edge_case",
+    "room": "harness",
+    "max_turns": 6,
+    "max_wall_clock_ms": 180000,
+    "agent_join_timeout_ms": 20000,
+    "agent_silence_timeout_ms": 15000,
+    "max_dead_air_strikes": 2,
+    "seed": 0,
+    "frame_ms": 20,
+    "sample_rate": 48000,
+    "barge_in_after_ms": 700,
+    "vad": {
+      "threshold_rms": 0.02,
+      "start_ms": 60,
+      "end_ms": 400
+    },
+    "clip_source": {
+      "rendered": 0,
+      "cache_hits": 6,
+      "synthetic": 0,
+      "cache_dir": "results/audio/cache"
+    },
+    "detector": {
+      "frames_seen": 994,
+      "observed_ms": 19880,
+      "speech_ms": 6540,
+      "silence_ms": 13340,
+      "threshold_rms": 0.02,
+      "start_ms": 60,
+      "end_ms": 400
+    },
+    "agent_audio_wav": "results/audio/0262fa5a5718_agent.wav",
+    "candidate_audio_wav": "results/audio/0262fa5a5718_candidate.wav"
+  },
+  "counts": {
+    "events": 37,
+    "turns": 12,
+    "candidate_turns": 6,
+    "agent_turns": 6,
+    "intended_barge_ins": 4,
+    "barge_ins": 4,
+    "overlap_ms": 1030,
+    "warnings": 0
+  },
+  "turns": [
+    {
+      "index": 1,
+      "actor": "agent",
+      "start_ms": 420,
+      "end_ms": 1380,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 960
+    },
+    {
+      "index": 2,
+      "actor": "candidate",
+      "start_ms": 1120,
+      "end_ms": 1394,
+      "intent": "short",
+      "text": "Yeah.",
+      "intended_barge_in": true,
+      "barge_in": true,
+      "overlap_ms": 260,
+      "duration_ms": 274
+    },
+    {
+      "index": 3,
+      "actor": "agent",
+      "start_ms": 2300,
+      "end_ms": 5700,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 3400
+    },
+    {
+      "index": 4,
+      "actor": "candidate",
+      "start_ms": 6260,
+      "end_ms": 6510,
+      "intent": "short",
+      "text": "No.",
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": 0,
+      "duration_ms": 250
+    },
+    {
+      "index": 5,
+      "actor": "agent",
+      "start_ms": 7420,
+      "end_ms": 8380,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 960
+    },
+    {
+      "index": 6,
+      "actor": "candidate",
+      "start_ms": 8120,
+      "end_ms": 8889,
+      "intent": "short",
+      "text": "I do not know.",
+      "intended_barge_in": true,
+      "barge_in": true,
+      "overlap_ms": 260,
+      "duration_ms": 769
+    },
+    {
+      "index": 7,
+      "actor": "agent",
+      "start_ms": 9840,
+      "end_ms": 10800,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 960
+    },
+    {
+      "index": 8,
+      "actor": "candidate",
+      "start_ms": 10540,
+      "end_ms": 11583,
+      "intent": "interrupting",
+      "text": "Wait, sorry, go on.",
+      "intended_barge_in": true,
+      "barge_in": true,
+      "overlap_ms": 260,
+      "duration_ms": 1043
+    },
+    {
+      "index": 9,
+      "actor": "agent",
+      "start_ms": 12500,
+      "end_ms": 13460,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 960
+    },
+    {
+      "index": 10,
+      "actor": "candidate",
+      "start_ms": 13200,
+      "end_ms": 13450,
+      "intent": "short",
+      "text": "Hmm.",
+      "intended_barge_in": true,
+      "barge_in": true,
+      "overlap_ms": 250,
+      "duration_ms": 250
+    },
+    {
+      "index": 11,
+      "actor": "agent",
+      "start_ms": 14440,
+      "end_ms": 16460,
+      "intent": null,
+      "text": null,
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": null,
+      "duration_ms": 2020
+    },
+    {
+      "index": 12,
+      "actor": "candidate",
+      "start_ms": 18340,
+      "end_ms": 20263,
+      "intent": "clarifying",
+      "text": "Sorry, I did not catch any of that.",
+      "intended_barge_in": false,
+      "barge_in": false,
+      "overlap_ms": 0,
+      "duration_ms": 1923
+    }
+  ],
+  "events": [
+    {
+      "t_ms": 0,
+      "kind": "session_start",
+      "actor": "harness",
+      "data": {
+        "persona": "edge_case",
+        "room": "harness"
+      }
+    },
+    {
+      "t_ms": 400,
+      "kind": "agent_joined",
+      "actor": "agent",
+      "data": {}
+    },
+    {
+      "t_ms": 420,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 460,
+        "detection_lag_ms": 40,
+        "energy": 0.08652
+      }
+    },
+    {
+      "t_ms": 460,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "short",
+        "text": "Yeah.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 1120,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "text": "Yeah.",
+        "intended_barge_in": true,
+        "agent_believed_speaking": true,
+        "duration_ms": 274
+      }
+    },
+    {
+      "t_ms": 1120,
+      "kind": "barge_in",
+      "actor": "candidate",
+      "data": {
+        "agent_believed_speaking": true,
+        "into_agent_turn_ms": 700
+      }
+    },
+    {
+      "t_ms": 1380,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 1760,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 1394,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "spoken_ms": 274
+      }
+    },
+    {
+      "t_ms": 1394,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "short",
+        "text": "No.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 2300,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 2340,
+        "detection_lag_ms": 40,
+        "energy": 0.06264
+      }
+    },
+    {
+      "t_ms": 5700,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 6080,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 6260,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "text": "No.",
+        "intended_barge_in": false,
+        "agent_believed_speaking": false,
+        "duration_ms": 250
+      }
+    },
+    {
+      "t_ms": 6510,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "spoken_ms": 250
+      }
+    },
+    {
+      "t_ms": 7420,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 7460,
+        "detection_lag_ms": 40,
+        "energy": 0.15068
+      }
+    },
+    {
+      "t_ms": 7460,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "short",
+        "text": "I do not know.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 8120,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "text": "I do not know.",
+        "intended_barge_in": true,
+        "agent_believed_speaking": true,
+        "duration_ms": 769
+      }
+    },
+    {
+      "t_ms": 8120,
+      "kind": "barge_in",
+      "actor": "candidate",
+      "data": {
+        "agent_believed_speaking": true,
+        "into_agent_turn_ms": 700
+      }
+    },
+    {
+      "t_ms": 8380,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 8760,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 8889,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "spoken_ms": 769
+      }
+    },
+    {
+      "t_ms": 9840,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 9880,
+        "detection_lag_ms": 40,
+        "energy": 0.08533
+      }
+    },
+    {
+      "t_ms": 9880,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "interrupting",
+        "text": "Wait, sorry, go on.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 10540,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "interrupting",
+        "text": "Wait, sorry, go on.",
+        "intended_barge_in": true,
+        "agent_believed_speaking": true,
+        "duration_ms": 1043
+      }
+    },
+    {
+      "t_ms": 10540,
+      "kind": "barge_in",
+      "actor": "candidate",
+      "data": {
+        "agent_believed_speaking": true,
+        "into_agent_turn_ms": 700
+      }
+    },
+    {
+      "t_ms": 10800,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 11180,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 11583,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "interrupting",
+        "spoken_ms": 1043
+      }
+    },
+    {
+      "t_ms": 12500,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 12540,
+        "detection_lag_ms": 40,
+        "energy": 0.1526
+      }
+    },
+    {
+      "t_ms": 12540,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "short",
+        "text": "Hmm.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 13200,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "text": "Hmm.",
+        "intended_barge_in": true,
+        "agent_believed_speaking": true,
+        "duration_ms": 250
+      }
+    },
+    {
+      "t_ms": 13200,
+      "kind": "barge_in",
+      "actor": "candidate",
+      "data": {
+        "agent_believed_speaking": true,
+        "into_agent_turn_ms": 700
+      }
+    },
+    {
+      "t_ms": 13450,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "short",
+        "spoken_ms": 250
+      }
+    },
+    {
+      "t_ms": 13450,
+      "kind": "turn_selected",
+      "actor": "harness",
+      "data": {
+        "intent": "clarifying",
+        "text": "Sorry, I did not catch any of that.",
+        "after_agent_repeat": false
+      }
+    },
+    {
+      "t_ms": 13460,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 13840,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 14440,
+      "kind": "agent_speech_start",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 14480,
+        "detection_lag_ms": 40,
+        "energy": 0.08533
+      }
+    },
+    {
+      "t_ms": 16460,
+      "kind": "agent_speech_end",
+      "actor": "agent",
+      "data": {
+        "declared_at_ms": 16840,
+        "detection_lag_ms": 380
+      }
+    },
+    {
+      "t_ms": 18340,
+      "kind": "candidate_speech_start",
+      "actor": "candidate",
+      "data": {
+        "intent": "clarifying",
+        "text": "Sorry, I did not catch any of that.",
+        "intended_barge_in": false,
+        "agent_believed_speaking": false,
+        "duration_ms": 1923
+      }
+    },
+    {
+      "t_ms": 20263,
+      "kind": "candidate_speech_end",
+      "actor": "candidate",
+      "data": {
+        "intent": "clarifying",
+        "spoken_ms": 1923
+      }
+    },
+    {
+      "t_ms": 20263,
+      "kind": "session_end",
+      "actor": "harness",
+      "data": {
+        "stop_reason": "turn_ceiling",
+        "error": null
+      }
+    }
+  ]
+}
