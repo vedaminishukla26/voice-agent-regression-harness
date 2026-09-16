@@ -1,5 +1,13 @@
-# Week 1 needs nothing but a test runner.
-# The TTS layer talks HTTP over the standard library on purpose: no vendor SDK,
-# so no wheel-availability risk and no transitive dependency surface.
-# Week 2 will add the media-server client. Keep this list honest and short.
+# Layer 1 and the offline loopback need nothing but a test runner, and the whole
+# test suite runs on this line alone. The TTS layer talks HTTP over the standard
+# library on purpose: no vendor SDK, so no wheel-availability risk and no
+# transitive dependency surface.
 pytest>=7.0
+
+# Layer 2 only, and only for the `livekit` transport. WebRTC is the one place
+# where speaking the protocol by hand is not reasonable, so this is the single
+# vendor SDK in the project. It is imported lazily inside the transport, so the
+# offline path never loads it and never requires it to be installed -- run
+# `--transport loopback` and this line is optional.
+livekit>=1.0
+livekit-api>=1.0
