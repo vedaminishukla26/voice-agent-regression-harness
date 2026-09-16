@@ -678,3 +678,87 @@ def test_every_persona_survives_a_session(tmp_path: Path):
         log = _run(name, tmp_path / name, max_turns=4, max_wall_clock_ms=120_000)
         assert log.stop_reason in (STOP_SCRIPT_EXHAUSTED, STOP_TURN_CEILING), name
         assert log.error is None, name
+
+
+# ---------------------------------------------------------------------------
+# agent dispatch
+# ---------------------------------------------------------------------------
+
+
+def _decode(token: str) -> dict:
+    import jwt
+
+    return jwt.decode(token, options={"verify_signature": False})
+
+
+def test_token_carries_no_dispatch_when_no_agent_is_named():
+    from livekit import api
+
+    from transport import LiveKitConfig, build_access_token
+
+    claims = _decode(
+        build_access_token(
+            api,
+            LiveKitConfig(
+                url="ws://x", api_key="k", api_secret="s" * 32, room="harness"
+            ),
+        )
+    )
+    assert claims["video"]["room"] == "harness"
+    assert not claims.get("roomConfig")
+
+
+def test_token_requests_the_named_agent_with_its_metadata():
+    """A worker started with an agent_name is never auto-dispatched. If this
+    request is missing, the session reports agent_never_joined and says nothing
+    about why."""
+    from livekit import api
+
+    from transport import LiveKitConfig, build_access_token
+
+    claims = _decode(
+        build_access_token(
+            api,
+            LiveKitConfig(
+                url="ws://x",
+                api_key="k",
+                api_secret="s" * 32,
+                room="harness",
+                agent_name="interview-bot",
+                agent_metadata='{"meeting_id": "abc"}',
+            ),
+        )
+    )
+    agents = claims["roomConfig"]["agents"]
+    assert len(agents) == 1
+    assert agents[0]["agentName"] == "interview-bot"
+    assert json.loads(agents[0]["metadata"])["meeting_id"] == "abc"
+
+
+def test_session_config_records_the_agent_but_never_its_metadata(tmp_path: Path):
+    """Metadata routinely holds an operator's prompt; records get pasted around."""
+    secret = '{"system_prompt": "SHOULD-NOT-APPEAR-IN-ANY-RECORD"}'
+    config = SessionConfig(
+        persona="cooperative", agent_name="interview-bot", agent_metadata=secret
+    )
+    rendered = json.dumps(config.to_dict())
+    assert "interview-bot" in rendered
+    assert "SHOULD-NOT-APPEAR-IN-ANY-RECORD" not in rendered
+    assert config.to_dict()["agent_metadata_bytes"] == len(secret)
+
+
+def test_agent_metadata_file_must_be_valid_json(tmp_path: Path):
+    from audio_loop import load_agent_metadata
+
+    bad = tmp_path / "meta.json"
+    bad.write_text("{not json", encoding="utf-8")
+    with pytest.raises(ValueError, match="not valid JSON"):
+        load_agent_metadata(bad)
+
+    missing = tmp_path / "nope.json"
+    with pytest.raises(ValueError, match="not found"):
+        load_agent_metadata(missing)
+
+    good = tmp_path / "ok.json"
+    good.write_text('{"meeting_id": "m1"}', encoding="utf-8")
+    assert json.loads(load_agent_metadata(good))["meeting_id"] == "m1"

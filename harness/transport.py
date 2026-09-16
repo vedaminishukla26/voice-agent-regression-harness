@@ -294,6 +294,23 @@ class LiveKitConfig:
     # default in a room containing only the harness and one agent.
     agent_identity_contains: str = ""
 
+    # Name of an agent to dispatch into the room on join. Leave empty for a
+    # worker that registers without one.
+    #
+    # This is not an optional nicety. A worker started with `agent_name` set is
+    # excluded from automatic dispatch -- the server will not hand it a room
+    # just because one appeared. Joining such a room and waiting produces a
+    # perfectly healthy-looking session that reports the agent never joined,
+    # with nothing anywhere saying why. Requesting the dispatch explicitly is
+    # the only thing that brings the agent in.
+    agent_name: str = ""
+
+    # JSON handed to the agent as job metadata. Agents commonly take their
+    # entire configuration this way -- prompt, language, voice, feature flags --
+    # so this is usually how a session is shaped, and it is read from a file
+    # outside the repository precisely because its contents tend to be private.
+    agent_metadata: str = ""
+
     def __post_init__(self) -> None:
         missing = [
             name
@@ -307,6 +324,48 @@ class LiveKitConfig:
                 + ". Set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET and pass "
                 "--room, or use --transport loopback to run with no server."
             )
+
+
+def build_access_token(api, config: LiveKitConfig) -> str:
+    """Mint the harness's join token, including any agent dispatch request.
+
+    Separate from :meth:`LiveKitTransport.connect` so the dispatch request can
+    be verified without a server. Whether the agent is asked for is the single
+    difference between a working run and a session that reports the agent never
+    joined, and that is not a thing to discover only against live infrastructure.
+
+    ``api`` is passed in rather than imported so the module continues to load
+    without the LiveKit SDK installed.
+    """
+    builder = (
+        api.AccessToken(config.api_key, config.api_secret)
+        .with_identity(config.identity)
+        .with_name(config.participant_name)
+        .with_grants(
+            api.VideoGrants(
+                room_join=True,
+                room=config.room,
+                can_publish=True,
+                can_subscribe=True,
+            )
+        )
+    )
+    if config.agent_name:
+        # Ask for the dispatch as part of joining rather than as a separate API
+        # call afterwards. The room is created by this join, so the request
+        # cannot arrive before the room exists, nor be left orphaned if the join
+        # fails -- both of which are possible when the two are separate steps.
+        builder = builder.with_room_config(
+            api.RoomConfiguration(
+                agents=[
+                    api.RoomAgentDispatch(
+                        agent_name=config.agent_name,
+                        metadata=config.agent_metadata,
+                    )
+                ]
+            )
+        )
+    return builder.to_jwt()
 
 
 class LiveKitTransport:
@@ -361,20 +420,7 @@ class LiveKitTransport:
             ) from exc
 
         self._rtc = rtc
-        token = (
-            api.AccessToken(self.config.api_key, self.config.api_secret)
-            .with_identity(self.config.identity)
-            .with_name(self.config.participant_name)
-            .with_grants(
-                api.VideoGrants(
-                    room_join=True,
-                    room=self.config.room,
-                    can_publish=True,
-                    can_subscribe=True,
-                )
-            )
-            .to_jwt()
-        )
+        token = build_access_token(api, self.config)
 
         self._room = rtc.Room()
         # Handlers are registered before connecting. An agent already in the

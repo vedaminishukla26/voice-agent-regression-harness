@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import random
 import sys
@@ -92,6 +93,7 @@ from vad import SPEECH_END, SPEECH_START, SpeechDetector, VadConfig
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TRANSCRIPT_DIR = PROJECT_ROOT / "results" / "transcripts"
+DEFAULT_AGENT_METADATA_FILE = "agent_metadata.json"
 DEFAULT_AUDIO_DIR = PROJECT_ROOT / "results" / "audio"
 
 
@@ -124,6 +126,11 @@ class SessionConfig:
     # Window after the agent starts speaking in which a barging persona cuts in.
     barge_in_after_ms: int = 700
 
+    # Agent dispatch. Only meaningful for the livekit transport; a worker
+    # started with a name is not auto-dispatched and must be asked for.
+    agent_name: str = ""
+    agent_metadata: str = ""
+
     def __post_init__(self) -> None:
         if self.max_turns <= 0:
             raise ValueError("max_turns must be positive")
@@ -148,6 +155,10 @@ class SessionConfig:
             "frame_ms": self.frame_ms,
             "sample_rate": self.sample_rate,
             "barge_in_after_ms": self.barge_in_after_ms,
+            "agent_name": self.agent_name,
+            # Length only. The metadata routinely contains an operator's
+            # prompt, and a session record is a file people paste around.
+            "agent_metadata_bytes": len(self.agent_metadata),
             "vad": {
                 "threshold_rms": self.vad.threshold_rms,
                 "start_ms": self.vad.start_ms,
@@ -700,12 +711,43 @@ def build_transport(
                 api_secret=os.environ.get("LIVEKIT_API_SECRET", ""),
                 room=config.room,
                 agent_identity_contains=os.environ.get("HARNESS_AGENT_IDENTITY", ""),
+                agent_name=config.agent_name,
+                agent_metadata=config.agent_metadata,
             ),
             scheduler=scheduler,
             sample_rate=config.sample_rate,
             frame_ms=config.frame_ms,
         )
     raise ValueError(f"unknown transport {kind!r}; use 'loopback' or 'livekit'")
+
+
+def load_agent_metadata(path: Optional[Path]) -> str:
+    """Read job metadata for the agent, from outside the repository by default.
+
+    An agent's job metadata typically carries its whole configuration, and for a
+    real deployment that includes its prompt. That belongs in the operator's own
+    private directory and never in this tree, so the default location is
+    ``~/.duplex-harness/agent_metadata.json``. Absence is not an error: an agent
+    that needs no metadata is perfectly normal, and one that does will fall back
+    to whatever defaults it was deployed with.
+    """
+    if path is not None:
+        if not path.exists():
+            raise ValueError(f"agent metadata file not found: {path}")
+        text = path.read_text(encoding="utf-8")
+    else:
+        from private_config import private_path
+
+        default = private_path(DEFAULT_AGENT_METADATA_FILE)
+        if not default.exists():
+            return ""
+        text = default.read_text(encoding="utf-8")
+
+    try:
+        json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"agent metadata is not valid JSON: {exc}") from exc
+    return text
 
 
 def build_clip_source(
@@ -816,6 +858,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="render real speech via the TTS provider instead of shaped tones",
     )
+    parser.add_argument(
+        "--agent-name",
+        default="",
+        help="dispatch this named agent on join (required for a worker started "
+             "with an agent_name; it will not be dispatched automatically)",
+    )
+    parser.add_argument(
+        "--agent-metadata",
+        type=Path,
+        help="JSON file of job metadata for the agent; defaults to "
+             "~/.duplex-harness/agent_metadata.json if present",
+    )
     parser.add_argument("--transcript-dir", type=Path, default=DEFAULT_TRANSCRIPT_DIR)
     parser.add_argument("--audio-dir", type=Path, default=DEFAULT_AUDIO_DIR)
     parser.add_argument("--quiet", action="store_true")
@@ -831,6 +885,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         max_turns=args.max_turns,
         max_wall_clock_ms=args.max_seconds * 1000,
         seed=args.seed,
+        agent_name=args.agent_name or os.environ.get("HARNESS_AGENT_NAME", ""),
+        agent_metadata=load_agent_metadata(args.agent_metadata),
     )
 
     try:
