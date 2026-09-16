@@ -26,10 +26,12 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import zlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol
 
+from audio_io import estimate_duration_ms, synthesize_speech_like
 from candidate_scripts import CandidateTurn, get_script
 from persona_spec import PERSONAS, PersonaSpec, get_persona
 
@@ -40,6 +42,14 @@ CARTESIA_ENDPOINT = "https://api.cartesia.ai/tts/bytes"
 CARTESIA_API_VERSION = "2024-11-13"
 DEFAULT_MODEL_ID = "sonic-3"
 REQUEST_TIMEOUT_SECONDS = 60
+
+# Compressed output, for listening to by ear.
+MP3_OUTPUT_FORMAT = {"container": "mp3", "bit_rate": 128_000, "sample_rate": 44_100}
+
+
+def pcm_output_format(sample_rate: int) -> Dict:
+    """Raw PCM at the audio loop's native rate -- nothing to decode or resample."""
+    return {"container": "raw", "encoding": "pcm_s16le", "sample_rate": sample_rate}
 
 
 class TTSError(RuntimeError):
@@ -72,6 +82,10 @@ class TTSBackend(Protocol):
 
     def synthesize(self, text: str, persona: PersonaSpec) -> bytes: ...
 
+    def synthesize_pcm(
+        self, text: str, persona: PersonaSpec, sample_rate: int
+    ) -> bytes: ...
+
 
 class DryRunBackend:
     """Produces no audio and makes no network calls.
@@ -94,6 +108,29 @@ class DryRunBackend:
             f"rate={persona.speech_rate} text={text!r}\n"
         )
         return preview.encode("utf-8")
+
+    def synthesize_pcm(
+        self, text: str, persona: PersonaSpec, sample_rate: int
+    ) -> bytes:
+        """Shaped tones of the right duration, for exercising the audio loop.
+
+        Not speech and not pretending to be. The loop measures *when* audio
+        starts and stops, so an utterance of the right length with a realistic
+        energy envelope puts every timing path under the same pressure real
+        speech would. Words would only matter to a layer that transcribes the
+        candidate, and nothing here does.
+        """
+        self.calls.append(text)
+        # crc32 rather than hash(): string hashing is salted per process, so
+        # hash() would give this "deterministic" backend different audio on
+        # every run, which is precisely the property a regression harness
+        # cannot afford.
+        seed = zlib.crc32(f"{persona.name}:{text}".encode("utf-8")) % 10_000
+        return synthesize_speech_like(
+            estimate_duration_ms(text, persona.speech_rate),
+            seed=seed,
+            sample_rate=sample_rate,
+        ).data
 
 
 class CartesiaTTSBackend:
@@ -129,7 +166,9 @@ class CartesiaTTSBackend:
         self.model_id = model_id
         self.endpoint = endpoint
 
-    def build_payload(self, text: str, persona: PersonaSpec) -> Dict:
+    def build_payload(
+        self, text: str, persona: PersonaSpec, output_format: Optional[Dict] = None
+    ) -> Dict:
         """Construct the request body.
 
         Split out from :meth:`synthesize` so payload shaping is testable without
@@ -142,15 +181,26 @@ class CartesiaTTSBackend:
             "voice": {"mode": "id", "id": persona.voice_id or self.voice_id},
             "language": persona.language,
             "speed": persona.speech_rate,
-            "output_format": {
-                "container": "mp3",
-                "bit_rate": 128_000,
-                "sample_rate": 44_100,
-            },
+            "output_format": output_format or MP3_OUTPUT_FORMAT,
         }
 
+    def synthesize_pcm(
+        self, text: str, persona: PersonaSpec, sample_rate: int
+    ) -> bytes:
+        """Synthesise straight to raw PCM at the transport's sample rate.
+
+        Asking the provider for raw PCM is what keeps an MP3 decoder and a
+        resampler out of this project entirely. Both are avoidable simply by
+        requesting the format the audio loop already wants, and neither is a
+        dependency worth carrying to undo a conversion nobody asked for.
+        """
+        return self._post(self.build_payload(text, persona, pcm_output_format(sample_rate)))
+
     def synthesize(self, text: str, persona: PersonaSpec) -> bytes:
-        body = json.dumps(self.build_payload(text, persona)).encode("utf-8")
+        return self._post(self.build_payload(text, persona))
+
+    def _post(self, payload: Dict) -> bytes:
+        body = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(
             self.endpoint,
             data=body,
