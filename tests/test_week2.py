@@ -762,3 +762,56 @@ def test_agent_metadata_file_must_be_valid_json(tmp_path: Path):
     good = tmp_path / "ok.json"
     good.write_text('{"meeting_id": "m1"}', encoding="utf-8")
     assert json.loads(load_agent_metadata(good))["meeting_id"] == "m1"
+
+
+# ---------------------------------------------------------------------------
+# .env loading
+# ---------------------------------------------------------------------------
+
+
+def test_env_file_is_actually_read(tmp_path: Path, monkeypatch):
+    """A documented, gitignored .env that nothing loads produces a credentials
+    error pointing at the environment while the values sit correct on disk."""
+    from private_config import load_env_file
+
+    env = tmp_path / ".env"
+    env.write_text(
+        "# comment\n"
+        "\n"
+        "LIVEKIT_URL=wss://example.livekit.cloud\n"
+        'LIVEKIT_API_KEY="quoted-key"\n'
+        "export LIVEKIT_API_SECRET=exported-secret\n"
+        "MALFORMED_LINE\n",
+        encoding="utf-8",
+    )
+    for k in ("LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"):
+        monkeypatch.delenv(k, raising=False)
+
+    assert load_env_file(env) == 3
+    import os
+
+    assert os.environ["LIVEKIT_URL"] == "wss://example.livekit.cloud"
+    assert os.environ["LIVEKIT_API_KEY"] == "quoted-key"     # quotes stripped
+    assert os.environ["LIVEKIT_API_SECRET"] == "exported-secret"  # export handled
+
+
+def test_env_file_does_not_clobber_a_real_export(tmp_path: Path, monkeypatch):
+    """An explicit export or a CI secret must beat a stale file on disk."""
+    from private_config import load_env_file
+
+    env = tmp_path / ".env"
+    env.write_text("LIVEKIT_URL=from-file\n", encoding="utf-8")
+    monkeypatch.setenv("LIVEKIT_URL", "from-environment")
+
+    assert load_env_file(env) == 0
+    import os
+
+    assert os.environ["LIVEKIT_URL"] == "from-environment"
+    assert load_env_file(env, override=True) == 1
+    assert os.environ["LIVEKIT_URL"] == "from-file"
+
+
+def test_missing_env_file_is_not_an_error(tmp_path: Path):
+    from private_config import load_env_file
+
+    assert load_env_file(tmp_path / "nope.env") == 0

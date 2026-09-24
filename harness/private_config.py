@@ -95,6 +95,48 @@ def load_private_json(name: str, required: bool = False) -> Optional[Dict[str, A
         raise PrivateConfigError(f"{path} is not valid JSON: {exc}") from exc
 
 
+def load_env_file(path: Optional[Path] = None, override: bool = False) -> int:
+    """Load ``KEY=VALUE`` lines from a .env into the environment.
+
+    The project documents a ``.env`` and gitignores it, so it has to actually be
+    read: telling someone to fill in a file that nothing loads produces a
+    credentials error that points at the environment while the values sit on
+    disk, correct, a metre away.
+
+    Written against the standard library rather than pulling in python-dotenv.
+    The format that matters here is fifteen lines of parsing, and the whole test
+    suite still runs on a test runner alone.
+
+    Values already present in the environment win by default, so an explicit
+    ``export`` or a CI secret is never silently replaced by a stale file.
+    Returns how many variables were set.
+    """
+    path = path or (PROJECT_ROOT / ".env")
+    if not path.exists():
+        return 0
+
+    loaded = 0
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key.startswith("export "):
+            key = key[len("export ") :].strip()
+        if not key:
+            continue
+        value = value.strip()
+        # Strip one matching pair of surrounding quotes, as every other .env
+        # reader does; a quoted value is quoting, not part of the secret.
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        if override or not os.environ.get(key):
+            os.environ[key] = value
+            loaded += 1
+    return loaded
+
+
 def describe() -> str:
     """Human-readable summary, for the CLI to print when asked."""
     path = private_dir()

@@ -143,6 +143,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
 
+    from private_config import load_env_file
+
+    load_env_file()
+
     if args.mode == "audio":
         try:
             return run_audio_phase(

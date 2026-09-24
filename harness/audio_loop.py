@@ -879,6 +879,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
 
+    # The project documents a .env and gitignores it, so it has to be read.
+    # Anything already exported wins, so this never overrides a real export.
+    from private_config import load_env_file
+
+    load_env_file()
+
     config = SessionConfig(
         persona=args.persona,
         room=args.room,
