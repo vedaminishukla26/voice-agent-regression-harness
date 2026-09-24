@@ -21,7 +21,7 @@ audio harness exercises the system.
 |-------|--------------|--------|
 | 1. Personas and rendering | Define how a speaker sounds; render their turns to audio | **Working** |
 | 2. Audio loop | Publish that audio to a live agent and capture the reply | **Working** |
-| 3. Metrics | Persist per-turn timing and aggregate it per language | Planned |
+| 3. Metrics | Persist per-turn timing and aggregate it per language | **Working** |
 | 4. Behaviour gates | Check transcripts against behavioural rules, fail the build | Planned |
 
 ## Design
@@ -95,7 +95,10 @@ python harness/audio_loop.py --persona edge_case --clock virtual
 # Every persona through the audio loop
 python harness/run_benchmark.py --mode audio --transport loopback --clock virtual
 
-# Tests (111, all offline, no sleeping through conversation time)
+# Layer 3: turn captured sessions into comparable numbers
+python harness/metrics_extractor.py --dir results/transcripts --baseline en
+
+# Tests (138, all offline, no sleeping through conversation time)
 python -m pytest
 ```
 
@@ -145,12 +148,13 @@ harness/
   transport.py           LiveKit room, and an offline agent    (layer 2)
   audio_loop.py          turn taking, barge-in, hard limits    (layer 2)
   private_config.py      where operator-private material lives
-  metrics_extractor.py   timing analysis                       (layer 3)
+  metrics_extractor.py   timing analysis, per language         (layer 3)
   prompt_judge.py        behavioural gates                     (layer 4)
   run_benchmark.py       entry point
 tests/
   test_week1.py          58 offline tests
-  test_week2.py          53 offline tests
+  test_week2.py          56 offline tests
+  test_week3.py          20 offline tests
 results/                 generated artifacts (audio is not committed)
 examples/                one committed session record, for shape
 ```
