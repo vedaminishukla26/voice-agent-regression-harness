@@ -45,6 +45,16 @@ def run_tts_phase(
     return 1 if failed else 0
 
 
+def _run_gates(args) -> int:
+    """Check captured sessions against the behavioural rules."""
+    from prompt_judge import main as judge_main
+
+    argv = ["--fail-on", args.fail_on]
+    if args.baseline is not None:
+        argv += ["--baseline", str(args.baseline)]
+    return judge_main(argv)
+
+
 def run_audio_phase(
     personas: Optional[List[str]],
     room: str,
@@ -54,6 +64,7 @@ def run_audio_phase(
     max_seconds: int,
     seed: int,
     use_tts: bool,
+    agent_script: str = "none",
 ) -> int:
     """Run one audio session per persona and report where each one stopped.
 
@@ -70,10 +81,14 @@ def run_audio_phase(
         run_session,
     )
     from session_log import STOP_SCRIPT_EXHAUSTED, STOP_TURN_CEILING
+    from transport import AGENT_SCRIPTS, LoopbackAgent
 
     targets = personas or sorted(PERSONAS)
     healthy = {STOP_SCRIPT_EXHAUSTED, STOP_TURN_CEILING}
     summaries = []
+
+    lines = AGENT_SCRIPTS[agent_script]
+    loopback_agent = LoopbackAgent(transcripts=list(lines)) if lines else None
 
     for name in targets:
         print(f"\n=== {name} ===")
@@ -93,6 +108,7 @@ def run_audio_phase(
                     use_tts=use_tts,
                     transcript_dir=DEFAULT_TRANSCRIPT_DIR,
                     audio_dir=DEFAULT_AUDIO_DIR,
+                    loopback_agent=loopback_agent,
                 )
             )
         except TransportError as exc:
@@ -137,6 +153,27 @@ def build_parser() -> argparse.ArgumentParser:
     audio.add_argument(
         "--tts", action="store_true", help="render real speech rather than shaped tones"
     )
+    audio.add_argument(
+        "--agent-script",
+        choices=("none", "clean", "faulty"),
+        default="none",
+        help="what the loopback agent publishes as its transcript; 'faulty' "
+             "commits real production mistakes so the gates can be seen firing",
+    )
+
+    gates = parser.add_argument_group("gates phase")
+    gates.add_argument(
+        "--baseline",
+        type=Path,
+        default=None,
+        help="a previous gate report; fail only on violations that are new",
+    )
+    gates.add_argument(
+        "--fail-on",
+        choices=("blocker", "major", "minor"),
+        default="major",
+        help="lowest severity that fails the build (default: major)",
+    )
     return parser
 
 
@@ -158,19 +195,40 @@ def main(argv: Optional[List[str]] = None) -> int:
                 max_seconds=args.max_seconds,
                 seed=args.seed,
                 use_tts=args.tts,
+                agent_script=args.agent_script,
             )
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
 
-    if args.mode in ("metrics", "gates", "full"):
-        print(
-            f"Phase {args.mode!r} is not implemented yet.\n"
-            "  metrics -- week 3, needs captured sessions\n"
-            "  gates   -- week 4, needs captured transcripts",
-            file=sys.stderr,
+    if args.mode == "metrics":
+        from metrics_extractor import main as metrics_main
+
+        return metrics_main([])
+
+    if args.mode == "gates":
+        return _run_gates(args)
+
+    if args.mode == "full":
+        # Capture, measure, then gate. The gate's exit code is the build's:
+        # numbers are for reading, gates are for blocking.
+        code = run_audio_phase(
+            personas=args.persona,
+            room=args.room,
+            transport=args.transport,
+            clock=args.clock,
+            max_turns=args.max_turns,
+            max_seconds=args.max_seconds,
+            seed=args.seed,
+            use_tts=args.tts,
+            agent_script=args.agent_script,
         )
-        return 2
+        if code == 2:
+            return 2
+        from metrics_extractor import main as metrics_main
+
+        metrics_main([])
+        return _run_gates(args)
 
     if args.dry_run:
         backend: TTSBackend = DryRunBackend()

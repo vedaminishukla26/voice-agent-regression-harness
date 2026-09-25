@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional, Protocol
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from audio_io import (
     DEFAULT_FRAME_MS,
@@ -80,6 +80,53 @@ class Transport(Protocol):
 # ---------------------------------------------------------------------------
 # Offline loopback
 # ---------------------------------------------------------------------------
+
+
+# What the simulated agent says, if it is asked to say anything.
+#
+# The audio loop does not need these -- it measures timing, and timing does not
+# care about words. The behavioural gates in layer 4 do need them, and an agent
+# that publishes no transcript leaves those gates with nothing to read. Shipping
+# two scripts means the gates can be exercised, and *seen to fire*, with no
+# server, no key and no model.
+
+# An interviewer that behaves. Longer than any default turn ceiling, so the
+# opening line is never cycled back round into a second introduction.
+CLEAN_INTERVIEWER_LINES: tuple = (
+    "Good morning, my name is Jay and I will be conducting your interview today.",
+    "To start, could you tell me about the work you were doing most recently?",
+    "What was your own part in that?",
+    "How did you decide on that approach?",
+    "What would you do differently if you started it again?",
+    "Tell me about a time something went wrong on that project.",
+    "How did the rest of the team react to that?",
+    "What did you take away from it?",
+    "Is there anything about your experience we have not covered?",
+    "Thank you, that is everything I needed. We will be in touch shortly.",
+)
+
+# The same interviewer with faults built in. Every line here reproduces a class
+# of failure that has actually reached production in a shipped voice agent:
+# punctuation read aloud as a word, template markup spoken verbatim, the
+# introduction delivered twice, two questions stacked into one turn, and the
+# candidate graded to their face.
+FAULTY_INTERVIEWER_LINES: tuple = (
+    "Good morning, my name is Jay and I will be conducting your interview today.",
+    "Tell me about the work you were doing most recently period Then we can "
+    "move on to the detail.",
+    "What was your role there, and how large was the team you worked with?",
+    "That is a great answer. Let us keep going.",
+    "Good morning, my name is Jay and I will be conducting your interview today.",
+    "I need **your notice period** and your earliest start date.",
+    "Hello {candidate_name}, is there anything else you want to add?",
+    "Thank you, that is everything I needed.",
+)
+
+AGENT_SCRIPTS: Dict[str, tuple] = {
+    "none": (),
+    "clean": CLEAN_INTERVIEWER_LINES,
+    "faulty": FAULTY_INTERVIEWER_LINES,
+}
 
 
 @dataclass

@@ -40,6 +40,7 @@ private/
 *.private.*
 *.private
 rules.local.json
+behaviour_rules.json
 prompts/
 agent_config.json
 
@@ -48,3 +49,4 @@ agent_config.json
 results/transcripts/*.json
 results/metrics/*.json
 results/metrics/*.csv
+results/judge/*.json

@@ -22,7 +22,7 @@ audio harness exercises the system.
 | 1. Personas and rendering | Define how a speaker sounds; render their turns to audio | **Working** |
 | 2. Audio loop | Publish that audio to a live agent and capture the reply | **Working** |
 | 3. Metrics | Persist per-turn timing and aggregate it per language | **Working** |
-| 4. Behaviour gates | Check transcripts against behavioural rules, fail the build | Planned |
+| 4. Behaviour gates | Check transcripts against behavioural rules, fail the build | **Working** |
 
 ## Design
 
@@ -98,7 +98,11 @@ python harness/run_benchmark.py --mode audio --transport loopback --clock virtua
 # Layer 3: turn captured sessions into comparable numbers
 python harness/metrics_extractor.py --dir results/transcripts --baseline en
 
-# Tests (138, all offline, no sleeping through conversation time)
+# Layer 4: check those sessions against the behavioural rules
+python harness/prompt_judge.py --rules              # what is checked
+python harness/prompt_judge.py --dir results/transcripts
+
+# Tests (238, all offline, no sleeping through conversation time)
 python -m pytest
 ```
 
@@ -135,6 +139,74 @@ Each session writes a timestamped JSON record plus both sides of the
 conversation as WAV. That record is what layer 3 reads; it is not re-derived
 from the audio.
 
+## Behavioural gates
+
+Latency is the half of agent quality that happens to be numeric. The other half
+is behavioural, it is specified in prose, and prose has no compiler. Layer 4
+turns those requirements into checks that pass or fail, so an edit to an agent's
+instructions can be gated the way an edit to its code is.
+
+Most of them do not need a model. A rule is deterministic wherever it can be —
+free, instant, and returning the same verdict on the same input forever — and
+judged by a panel only for the residue that genuinely needs reading
+comprehension. That split is not a cost saving. The failures that actually reach
+production turn out to be overwhelmingly in the first family:
+
+| Gate | The failure it catches |
+|------|------------------------|
+| `spoken_punctuation` | `.` read aloud as the word "period" |
+| `spoken_markup` | `**bold**`, a bullet, an unfilled `{placeholder}` spoken verbatim |
+| `no_instruction_leak` | the agent reciting its own instructions |
+| `holds_role_under_injection` | an injection, arriving through speech, changing what it will do |
+| `introduce_once` | the interviewer introducing itself twice |
+| `no_reask_after_stall` | "give me a second" answered by asking again — the one interruption they asked to avoid |
+| `one_question_per_turn` | two questions stacked into one breath |
+| `no_repeat_question` | a question already answered, asked again |
+| `reask_after_deflection` | a dodged question quietly dropped |
+| `no_self_evaluation` | grading the candidate to their face |
+
+A judged rule runs an odd-numbered panel and reports its **disagreement rate**
+next to the verdict. A single call at temperature zero is deterministic but not
+thereby reliable — those are different properties, and treating them as one is
+how a benchmark starts reporting movement that is really judge noise. A panel
+that split is reported as contested, not as passed.
+
+Three refusals keep the verdicts worth having.
+
+**Nothing read is not the same as nothing wrong.** An agent turn only has text
+if the agent published a transcription. When none was published, a report of
+"no violations" would be a lie — nothing was found because nothing was looked
+at. Those sessions are `INCONCLUSIVE`, never `PASS`, the timing rules still run,
+and the gate exits non-zero unless the absence is waived explicitly.
+
+**A violation the record cannot prove is not reported.** When several transcript
+lines land inside one detected agent turn — which happens whenever the candidate
+interrupts hard enough to blur the boundary — the harness cannot distinguish a
+genuinely stacked question from two turns it failed to separate. So each
+published line is judged on its own, that being the largest unit the record
+attests to. Reporting the merge would be blaming the agent for the measurement.
+
+**The gate blocks on what is new, not on what is wrong.** A suite that starts
+with twelve known violations can never go green, so in practice it gets switched
+off. Given a baseline, only violations absent from it fail the build, and a
+violation's identity is its rule and its evidence — the same fault at a
+different timestamp is the same fault.
+
+```bash
+# See every gate fire, offline, against a deliberately faulty interviewer
+python harness/run_benchmark.py --mode audio --transport loopback \
+    --clock virtual --agent-script faulty
+python harness/prompt_judge.py --dir results/transcripts
+
+# In CI: capture, measure, gate. Exit code is the gate's.
+python harness/run_benchmark.py --mode full --transport loopback \
+    --clock virtual --baseline results/judge/baseline.json
+```
+
+Rules that could only have been written by reading a particular company's prompt
+do not belong in this repository. They are supplied at runtime from the private
+directory instead, as judged rules, and are never committed.
+
 ## Layout
 
 ```
@@ -149,12 +221,13 @@ harness/
   audio_loop.py          turn taking, barge-in, hard limits    (layer 2)
   private_config.py      where operator-private material lives
   metrics_extractor.py   timing analysis, per language         (layer 3)
-  prompt_judge.py        behavioural gates                     (layer 4)
+  prompt_judge.py        behavioural gates, and the CI gate     (layer 4)
   run_benchmark.py       entry point
 tests/
   test_week1.py          58 offline tests
   test_week2.py          56 offline tests
   test_week3.py          20 offline tests
+  test_week4.py          100 offline tests
 results/                 generated artifacts (audio is not committed)
 examples/                one committed session record, for shape
 ```

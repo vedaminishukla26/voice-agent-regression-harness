@@ -80,6 +80,7 @@ from session_log import (
     race_timeout,
 )
 from transport import (
+    AGENT_SCRIPTS,
     END_OF_AUDIO,
     AgentFrame,
     LiveKitConfig,
@@ -870,6 +871,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="JSON file of job metadata for the agent; defaults to "
              "~/.duplex-harness/agent_metadata.json if present",
     )
+    parser.add_argument(
+        "--agent-script",
+        choices=sorted(AGENT_SCRIPTS),
+        default="none",
+        help="what the loopback agent publishes as its transcript: 'none' "
+             "(timing only), 'clean' (a well-behaved interviewer), or 'faulty' "
+             "(one that commits real production mistakes, so the layer 4 gates "
+             "can be seen firing offline)",
+    )
     parser.add_argument("--transcript-dir", type=Path, default=DEFAULT_TRANSCRIPT_DIR)
     parser.add_argument("--audio-dir", type=Path, default=DEFAULT_AUDIO_DIR)
     parser.add_argument("--quiet", action="store_true")
@@ -895,6 +905,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         agent_metadata=load_agent_metadata(args.agent_metadata),
     )
 
+    lines = AGENT_SCRIPTS[args.agent_script]
+    agent = LoopbackAgent(transcripts=list(lines)) if lines else None
+
     try:
         log = asyncio.run(
             run_session(
@@ -904,6 +917,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 use_tts=args.tts,
                 transcript_dir=args.transcript_dir,
                 audio_dir=args.audio_dir,
+                loopback_agent=agent,
                 verbose=not args.quiet,
             )
         )

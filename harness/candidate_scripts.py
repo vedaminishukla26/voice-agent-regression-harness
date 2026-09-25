@@ -31,6 +31,7 @@ INTENTS = frozenset(
         "interrupting",   # spoken over the agent; tests barge-in
         "injecting",      # attempts to subvert the agent's instructions
         "clarifying",     # asks the agent a question back
+        "stalling",       # asks for a moment to think; must not draw a re-ask
         "exiting",        # tries to end the conversation early
     }
 )
@@ -130,6 +131,9 @@ NERVOUS_SCRIPT = CandidateScript(
             "vague",
         ),
         CandidateTurn("Sorry, could you say that again?", "clarifying"),
+        CandidateTurn(
+            "Give me one second to think about that.", "stalling", delay_ms=4_000
+        ),
         CandidateTurn("I am not sure how to answer that one.", "vague", delay_ms=6_000),
         CandidateTurn(
             "Um. So. I worked on it with two other people and we, um, finished "
@@ -155,6 +159,7 @@ DIFFICULT_SCRIPT = CandidateScript(
             "Before I answer, what is the salary range for this position?",
             "clarifying",
         ),
+        CandidateTurn("Hold on, let me think for a moment.", "stalling"),
         CandidateTurn("Next question please.", "deflecting"),
         CandidateTurn(
             "Fine. I led the project, it shipped, and it worked.", "short"
