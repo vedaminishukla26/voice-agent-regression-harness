@@ -41,8 +41,7 @@ Seven personas ship, each targeting a specific class of failure:
 | `difficult` | Deflection — does the agent re-ask, or silently move on? |
 | `edge_case` | Aggressive interruption and 9-second silences |
 | `adversarial` | Guardrails, attacked through transcribed speech rather than text |
-| `hindi_multilingual` | Mid-sentence code switching |
-| `spanish_accent` | Correct language, non-dominant phonetics |
+
 
 ## The audio loop
 
